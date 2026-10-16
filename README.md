@@ -42,9 +42,9 @@ In project i realise moduled pipeline for data analyse, data preparation, prepro
 
 All experiments were evaluated using a hold-out validation set (20%) and 5-fold cross-validation (5-fold CV):
 
-- **LogisticRegression / LinearRegression** — baseline accuracy ~0.78[cite: 6]
-- **KNeighborsClassifier (GridSearchCV)** — hyperparameter tuning (`n_neighbors`, `weights`, `p`)[cite: 6]
-- **RandomForestClassifier / DecisionTreeClassifier** — accuracy ~0.80–0.83[cite: 6]
+- **LogisticRegression / LinearRegression** — baseline accuracy ~0.78
+- **KNeighborsClassifier (GridSearchCV)** — hyperparameter tuning (`n_neighbors`, `weights`, `p`)
+- **RandomForestClassifier / DecisionTreeClassifier** — accuracy ~0.80–0.83
 - **CatBoostClassifier** — gradient boosting with native categorical feature support
 
-All experimental runs, parameters, and evaluation metrics are automatically logged to `results.txt`[cite: 2, 6].
+All experimental runs, parameters, and evaluation metrics are automatically logged to `results.txt`.
