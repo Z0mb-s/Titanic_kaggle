@@ -1,0 +1,9 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+submission.csv
+.idea/
+.vscode/
+catboost_info/
