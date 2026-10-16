@@ -8,3 +8,4 @@ submission.csv
 .vscode/
 catboost_info/
 submission.csv
+checkpoints/

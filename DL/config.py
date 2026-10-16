@@ -4,21 +4,18 @@ config = {
     'general': {
         'experement_name': 'name',
         'seed': 0xDEAD,
-        'num_classes': 250,
+        'num_classes': 1,
     },
     'paths': {
-        'path_to_csv': 'path....',
-        'path_to_data': 'path....',
-        'path_to_labels': 'path....',
-        'path_to_json': 'path....',
-        'path_to_folder': 'path....',
-        'pq_path': 'path....',
-        'path_to_checkpoints': 'path....${general.experement_name}',
+        'train_csv': 'data/train.csv',
+        'test_csv': 'data/test.csv',
+        'submission_csv': 'submission.csv',
+        'checkpoints_dir': 'checkpoints/',  
     },
     'training': {
-        'num_epochs': 200,
-        'early_stopping_epochs': 100,
-        'lr': 1e-4 / 100,
+        'num_epochs': 50,
+        'early_stopping_epochs': 15,
+        'lr': 1e-3,
         
         'mixed_precisions': True,
         'gradient_accumulation': False,
@@ -41,8 +38,8 @@ config = {
         'resume_from_latest_checkpoint': False,
     },
     'dataloader_params': {
-        'batch_size': 64,
-        'num_workers': 8,
+        'batch_size': 32,
+        'num_workers': 0,
         'pin_memory': False,
         'presistent_workers': True,
         'shuffle': True,
@@ -56,17 +53,9 @@ config = {
         'already_split': False,
     },
     'model': {
-        'freeze_batchnorms': False,
-        'converter_sample_input_shape': [111, 222, 1 ],
-        'model_sample_input_shape': [111, 333],
-        'params': {
-            'max_length': 111,
-            'embed_dim': 222,
-            'num_point': 333,
-            'num_head': 16,
-            'num_class': '${general.num_classes}',
-            'mu,_block': 1,
-        },
+        'hidden_dim_1': 64,
+        'hidden_dim_2': 32,
+        'dropout': 0.2,
     },
     'augmentations': {
         'scale': (0.8,1.5),
@@ -75,7 +64,7 @@ config = {
         'p': 0.5,
     },
     'optimizer': {
-        'name': '/custom/ranger',
+        'name': 'Adam',
         'params': {
             'lr': '${training.lr}',
         },
@@ -89,7 +78,7 @@ config = {
         },
     },
     'loss': {
-        'name': '/custom/ArcFaceLoss',
+        'name': '',
         'params': {
             's': 45,
             'm': 0.4,
@@ -105,7 +94,7 @@ config = {
     'logging': {
         'prints': True,
         'txt_file': True,
-        'wandb': True,
+        'wandb': False,
         'telegram': False,
         'wandb_username': '...',
         'wandb_project_name': '...',
