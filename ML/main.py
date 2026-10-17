@@ -22,7 +22,7 @@ features=['SibSp', 'Pclass', 'Fare','Age', 'Parch', 'Embarked', 'Sex']
 X_tr=df_tr[features]
 y_tr=df_tr['Survived']
 X_ts=df_ts[features]
-model = ElasticNet(**dict(config.model.ElasticNet))
+model = CatBoostClassifier(**dict(config.model.CatBoostClassifier))
 
 #transform data
 prep=ColumnTransformer(

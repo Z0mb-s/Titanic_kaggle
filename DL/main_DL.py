@@ -11,6 +11,7 @@ from config import config
 from data_DL import get_data_splits, df_ts
 from train_functions import TabularDataset, train_one_epoch, eval_one_epoch
 
+#layers of model
 class TitanicModel(nn.Module):
     def __init__(self, input_dim, hidden1=config.model.hidden_dim_1, hidden2=config.model.hidden_dim_2, dropout=config.model.dropout):
         super().__init__()
@@ -31,13 +32,13 @@ class TitanicModel(nn.Module):
     def forward(self, x):
         return self.net(x)
     
-
+#check device
 def main():
     device_name = 'cuda' if torch.cuda.is_available() and config.training.device == 'cuda' else 'cpu'
     device = torch.device(device_name)
     print(f"Using device: {device}")
     
-    #get data
+    #get data splits
     X_train, X_val, Y_train, Y_val, X_test = get_data_splits(seed=config.general.seed)
     
     #create datasets and dataloaders
@@ -45,7 +46,7 @@ def main():
     val_dataset = TabularDataset(X_val, Y_val)
     test_dataset = TabularDataset(X_test)
     
-    train_loader = DataLoader(
+    train_loader = DataLoader( # dataloader splits by batch and shuffle
         train_dataset,
         batch_size=config.dataloader_params.batch_size,
         shuffle=config.dataloader_params.shuffle,
@@ -72,8 +73,8 @@ def main():
             dropout=config.model.dropout
         ).to(device)
     
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.training.lr)
+    criterion = nn.BCEWithLogitsLoss() #function of loss for binary classification
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.training.lr) # optimization algorithm
     
     #create checkpoints directory
     os.makedirs(config.paths.checkpoints_dir, exist_ok=True)
