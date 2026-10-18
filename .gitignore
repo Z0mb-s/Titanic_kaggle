@@ -9,3 +9,5 @@ submission.csv
 catboost_info/
 submission.csv
 checkpoints/
+*.pth
+.DS_Store

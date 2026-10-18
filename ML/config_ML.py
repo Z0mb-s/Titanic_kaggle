@@ -5,6 +5,9 @@ config = {
         'experement_name': 'titanic_1',
         'seed': 0xDEAD,
         'class': 'classifier',
+        'n_splits': 5,
+        'shuffle': True,
+        'select_model': 'LGBMClassifier',
     },
     'paths': {
     'path_to_test': 'data/test.csv',
@@ -33,7 +36,13 @@ config = {
             'random_seed': '${general.seed}',
             'verbose': False,
             },
-        'CatBoost': {},
+        'LGBMClassifier': {
+            'learning_rate': 3e-2,
+            'num_leaves': 9,
+            'n_estimators': 100,
+            'random_state': '${general.seed}',
+            'verbose': -1,
+            },
         'Lasso': {
             'alpha': 0.01,
             'random_state': '${general.seed}',

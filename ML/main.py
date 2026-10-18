@@ -1,112 +1,100 @@
 import pandas as pd
+import numpy as np
+from copy import deepcopy
+from datetime import datetime
 
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression, LinearRegression, Lasso, Ridge, ElasticNet
-from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
 
-from catboost import CatBoost, CatBoostClassifier
-#int bostings in this code, and do dl pipeline!
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 
-from datetime import datetime
-
-from data import df_tr, df_ts
 from config_ML import config
+from data import get_folds, df_tr, df_ts, y_tr, features, cat_features
 
-#rename data 
-features=['SibSp', 'Pclass', 'Fare','Age', 'Parch', 'Embarked', 'Sex']
-X_tr=df_tr[features]
-y_tr=df_tr['Survived']
-X_ts=df_ts[features]
-model = CatBoostClassifier(**dict(config.model.CatBoostClassifier))
+model_name = config.general.select_model
+model_params = dict(config.model[model_name])
+# globals search import class
+base_model = globals()[model_name](**model_params) if model_name != 'KNeighborsClassifier' else KNeighborsClassifier()
 
-#transform data
-prep=ColumnTransformer(
-    transformers=[
-        (
-            'cat',
-            OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'),
-            ['Sex', 'Embarked'],
-        ),
-        (
-            'num',
-            StandardScaler(),
-            ['SibSp', 'Pclass', 'Fare', 'Age', 'Parch'],
-        ),
-    ]
-)
+n_splits=config.general.n_splits
+oof_preds=np.zeros(len(df_tr), dtype=int)
+test_preds_sum=np.zeros(len(df_ts))
+fold_accuracies=[]
 
-#split data
-X_train, X_test, Y_train, Y_test = train_test_split(
-    X_tr, y_tr, test_size=0.2, random_state=config.general.seed
-    )
+#get data splits
+for fold, (X_train_prep, X_val_prep, Y_train, Y_val, X_ts_prep, 
+           X_train_raw, X_val_raw, X_ts_raw, val_idx) in get_folds(n_splits=n_splits, seed=config.general.seed):
+    
+    # copy for iter fold
+    model = deepcopy(base_model)
 
-#featuring?
-X_train_prep = prep.fit_transform(X_train)
-X_test_prep = prep.transform(X_test)
-X_ts_prep = prep.transform(X_ts)
+    #linearregression check
+    if isinstance(model, (LinearRegression, Lasso, Ridge, ElasticNet)):
+        model.fit(X_train_prep, Y_train)
+        val_pred=(model.predict(X_val_prep) >= 0.5).astype(int).flatten()
+        test_pred=(model.predict(X_ts_prep) >= 0.5).astype(int).flatten()
+    #knn check
+    elif isinstance(model, KNeighborsClassifier):
+        param_grid=dict(config.model.KNeighborsClassifier)
+        grid = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
+        grid.fit(X_train_prep, Y_train)
+        #выбираем лучшую модель
+        model = grid.best_estimator_
+        val_pred = model.predict(X_val_prep).flatten()
+        test_pred = model.predict(X_ts_prep).flatten()
+    #catboost check
+    elif isinstance(model, CatBoostClassifier):
+        model.fit(X_train_raw, Y_train, cat_features=cat_features)
+        val_pred = model.predict(X_val_raw).astype(int).flatten()
+        test_pred = model.predict(X_ts_raw).astype(int).flatten()
+    elif isinstance(model, LGBMClassifier):
+        model.fit(X_train_prep, Y_train)
+        val_pred=model.predict(X_val_prep).astype(int).flatten()
+        test_pred=model.predict(X_ts_prep).astype(int).flatten()
 
-#training and check model type
-model.fit(X_train_prep, Y_train)
-#linearregression check
-if isinstance(model, (LinearRegression, Lasso, Ridge, ElasticNet)):
-    model.fit(X_train_prep, Y_train)
-    Y_pred_cont=model.predict(X_test_prep)
-    Y_pred=(Y_pred_cont >= 0.5).astype(int)
-    test_predictions_cont=model.predict(X_ts_prep)
-    test_predictions=(test_predictions_cont >= 0.5).astype(int)
-#knn check
-elif isinstance(model, KNeighborsClassifier):
-    param_grid=dict(config.model.KNeighborsClassifier)
-    grid = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
-    grid.fit(X_train_prep, Y_train)
-    print(f"Лучшие параметры: {grid.best_params_}")
-    print(f"Лучший CV score:  {grid.best_score_:.4f}")
-    #выбираем лучшую модель
-    model = grid.best_estimator_
-    Y_pred = model.predict(X_test_prep)
-    test_predictions = model.predict(X_ts_prep)
-#catboost check
-elif isinstance(model, CatBoostClassifier):
-    features = ['Sex', 'Embarked']
-    model.fit(X_train, Y_train, cat_features=features)
-    Y_pred = model.predict(X_test).astype(int)
-    test_predictions = model.predict(X_ts).astype(int)
+    else:
+        model.fit(X_train_prep, Y_train)
+        val_pred = model.predict(X_val_prep).astype(int).flatten()
+        test_pred = model.predict(X_ts_prep).astype(int).flatten()
 
-else:
-    model.fit(X_train_prep, Y_train)
-    Y_pred = model.predict(X_test_prep).astype(int)
-    test_predictions = model.predict(X_ts_prep).astype(int)
+    # fold ansvers
+    oof_preds[val_idx] = val_pred
+    test_preds_sum += test_pred
+    
+    fold_acc = accuracy_score(Y_val, val_pred)
+    fold_accuracies.append(fold_acc)
+    print(f"Fold {fold + 1}/{n_splits} | Val Accuracy: {fold_acc:.4f}")
+    
+acc = accuracy_score(y_tr, oof_preds)
+# mean ansvers from folds
+test_predictions = (test_preds_sum >= (n_splits / 2)).astype(int)
 
-acc = accuracy_score(Y_test, Y_pred)
-
-print(f'predicts: {Y_pred.sum()}')
-print(f'accuracy: {acc:.2f}')
+print(f'\nOOF predicts sum: {oof_preds.sum()}')
+print(f'Mean Fold Accuracy: {np.mean(fold_accuracies):.4f}')
+print(f'Total OOF Accuracy: {acc:.4f}')
 
 #save model metrics
-model_name = model.__class__.__name__
+model_name = base_model.__class__.__name__
 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 with open('results.txt', 'a', encoding='utf-8') as f:
     f.write('=' * 60 + '\n')
     f.write(f'Timestamp:       {current_time}\n')
     f.write(f'Experiment:      {config.general.experement_name}\n')
     f.write(f'Model Class:     {model_name}\n')
+    f.write(f'Validation:      StratifiedKFold ({n_splits} splits)\n')
     f.write(f'Input Features:  {features}\n')
     f.write(f'Random Seed:     {config.general.seed}\n')
-    f.write(f'Accuracy:        {acc:.4f}\n')
-    f.write(f'Model Params:    {model.get_params()}\n')
-    f.write('-' * 60 + '\n')
-    f.write(f'Real labels (test):\n{list(Y_test.values)}\n')
-    f.write(f'Predictions (test):\n{list(Y_pred)}\n')
+    f.write(f'Fold Accuracies: {[round(x, 4) for x in fold_accuracies]}\n')
+    f.write(f'OOF Accuracy:    {acc:.4f}\n')
+    f.write(f'Model Params:    {base_model.get_params()}\n')
     f.write('=' * 60 + '\n\n')
 
 print(f'Результаты эксперимента [{model_name}] успешно добавлены в results.txt')
-
-print("Результаты успешно записаны в results.txt")
 
 submission = pd.DataFrame({
     'PassengerId': df_ts['PassengerId'],

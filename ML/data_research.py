@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-data=pd.read_csv('D:/projects_study/kaggle_titanic/data/train.csv')
+data=pd.read_csv('data/train.csv')
 
 df = data.copy()
 #see data
