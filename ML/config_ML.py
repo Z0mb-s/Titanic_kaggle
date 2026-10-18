@@ -7,12 +7,12 @@ config = {
         'class': 'classifier',
         'n_splits': 5,
         'shuffle': True,
-        'select_model': 'LGBMClassifier',
+        'select_model': 'CatBoostClassifier',
     },
     'paths': {
-    'path_to_test': 'data/test.csv',
-    'path_to_train': 'data/train.csv',
-    'path_to_val': 'data/gender_submission.csv',
+        'train_csv': 'data/train.csv',
+        'test_csv': 'data/test.csv',
+        'submission_csv': 'submission.csv',  
     },
     'model': {
         'LogisticRegression': {},
