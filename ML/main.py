@@ -42,11 +42,11 @@ for fold, (X_train_prep, X_val_prep, Y_train, Y_val, X_ts_prep,
     elif isinstance(model, KNeighborsClassifier):
         param_grid=dict(config.model.KNeighborsClassifier)
         grid = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
-        grid.fit(X_train_prep, Y_train)
+        grid.fit(X_train_raw, Y_train)
         #выбираем лучшую модель
         model = grid.best_estimator_
-        val_pred = model.predict(X_val_prep).flatten()
-        test_pred = model.predict(X_ts_prep).flatten()
+        val_pred = model.predict(X_val_raw).flatten()
+        test_pred = model.predict(X_ts_raw).flatten()
     #catboost check
     elif isinstance(model, CatBoostClassifier):
         model.fit(X_train_raw, Y_train, cat_features=cat_features)

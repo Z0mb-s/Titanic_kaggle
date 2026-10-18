@@ -37,12 +37,12 @@ ax[1].set_title('Sex:Survived vs Dead')
 #woman survived in 0.75, man in last. In all count of womans and mans, mans survived 100 in 500 mans and womans 250 in 350 thats huge gap
 
 #how class of ticket affects to survive
-print(df['Embarked'].unique()) #unique classes of tickets
+print(df['Pclass'].unique()) #unique classes of tickets
 f,ax=plt.subplots(1,2,figsize=(18,8))
-data[['Embarked','Survived']].groupby(['Embarked']).mean().plot.bar(ax=ax[0])
-ax[0].set_title('Survived vs Embared')
-sns.countplot(x='Embarked',hue='Survived',data=df,ax=ax[1])
-ax[1].set_title('Embared:Survived vs Dead')
+data[['Pclass','Survived']].groupby(['Pclass']).mean().plot.bar(ax=ax[0])
+ax[0].set_title('Survived vs Pclass')
+sns.countplot(x='Pclass',hue='Survived',data=df,ax=ax[1])
+ax[1].set_title('Pclass:Survived vs Dead')
 
 #s - low priority (220/650) c - medium (100/180) q - premium (25/70)
 

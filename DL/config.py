@@ -25,8 +25,6 @@ config = {
     },
     'split': {
         'n_splits': 5,
-        'folds_to_train': [0, 1, 2, 3, 4],
-        'folds_to_submit': [0, 1, 2, 3, 4],
     },
     'model': {
         'hidden_dim_1': 64,
@@ -38,14 +36,6 @@ config = {
         'params': {
             'lr': '${training.lr}',
             'weight_decay': '${training.weight_decay}',
-        },
-    },
-    'sheduller': {
-        'name': 'CosineAnnalingLR',
-        'interval': 'epoch',
-        'params': {
-            'T_max': 195,
-            'eta_min': 1e-8,
         },
     },
     'metric': {

@@ -61,16 +61,3 @@ def get_folds(n_splits=config.split.n_splits, seed=config.general.seed):
         X_ts_prep = prep.transform(X_ts_raw)
         
         yield fold, X_train_prep, X_val_prep, Y_train, Y_val, X_ts_prep
-
-        
-
-#split data
-"""def get_data_splits(seed=config.general.seed, test_size=0.2):
-    X_train, X_val, Y_train, Y_val = train_test_split(
-        X_tr, y_tr, test_size=test_size, random_state=seed
-    )
-    X_train_prep = prep.fit_transform(X_train)
-    X_val_prep = prep.transform(X_val)
-    X_ts_prep = prep.transform(X_ts)
-    
-    return X_train_prep, X_val_prep, Y_train, Y_val, X_ts_prep"""

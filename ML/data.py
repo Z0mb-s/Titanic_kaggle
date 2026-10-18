@@ -51,6 +51,7 @@ prep = ColumnTransformer(
 
 # folds generator
 def get_folds(n_splits=config.general.n_splits, seed=config.general.seed):
+    """Generate StratifiedKFold splits with leak-free data preprocessing."""
     skf = StratifiedKFold(n_splits=n_splits, shuffle=config.general.shuffle, random_state=seed)
     
     for fold, (train_idx, val_idx) in enumerate(skf.split(X_tr, y_tr)):

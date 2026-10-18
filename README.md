@@ -27,7 +27,7 @@ The project implements modular pipelines for data analysis, preprocessing, train
 
 ## 3. Project Structure
 
-The project is split into two dedicated directories: `ML/` for classical machine learning workflows and `DL/` for PyTorch neural network experiments:
+The project is divided into two dedicated directories: `ML/` for classical machine learning workflows and `DL/` for PyTorch neural network experiments. Execution artifacts (evaluation logs, model checkpoints, submission files) are stored at the root directory of the repository:
 
 ```text
 ├── data/
@@ -36,16 +36,16 @@ The project is split into two dedicated directories: `ML/` for classical machine
 │   └── gender_submission.csv   # Kaggle baseline benchmark
 ├── ML/
 │   ├── config_ML.py            # ML hyperparameter and pipeline configuration (OmegaConf)
-│   ├── data.py                 # Data loading, pipelines, and preprocessing
+│   ├── data.py                 # Data loading, pipelines, and StratifiedKFold splits
 │   ├── data_research.py        # Exploratory Data Analysis (EDA) and visualizations
-│   ├── main.py                 # Classical ML training, evaluation, and inference script
-│   └── results.txt             # Experiment history and logged evaluation metrics
+│   └── main.py                 # Classical ML training, 5-fold CV, and inference script
 ├── DL/
 │   ├── config.py               # DL configuration (epochs, optimizer, lr, layers)
 │   ├── data_DL.py              # PyTorch tabular data preprocessing and split generator
 │   ├── train_functions.py      # TabularDataset class, train_one_epoch, and eval_one_epoch
-│   ├── main_DL.py              # PyTorch MLP training, validation, and inference script
-│   └── checkpoints/            # Saved PyTorch model checkpoints (.pth)
+│   └── main_DL.py              # PyTorch MLP training, validation, and inference script
+├── checkpoints/                # Saved PyTorch model checkpoints (.pth)
+├── results.txt                 # Experiment history and logged evaluation metrics
 ├── requirements.txt            # Project dependencies
 ├── submission.csv              # Generated final predictions ready for Kaggle submission
 └── README.md                   # Project documentation
@@ -60,32 +60,46 @@ Run the classical ML training pipeline from the project root:
 ```bash
 python ML/main.py
 ```
-- Select the active model in `ML/config_ML.py` via `select_model` (e.g., `CatBoostClassifier`, `RandomForestClassifier`, `LGBMClassifier`, `LogisticRegression`).
-- Evaluation metrics, random seeds, and hyperparameters are automatically logged to `ML/results.txt`.
-- A submission file (`submission.csv`) is automatically generated in the **project root directory**, formatted with `PassengerId` and `Survived` columns ready for direct submission to Kaggle.
+- Select the active model in `ML/config_ML.py` via `select_model` (e.g., `CatBoostClassifier`, `RandomForestClassifier`, `LGBMClassifier`, `LogisticRegression`, `KNeighborsClassifier`).
+- Validation is conducted using **5-Fold Stratified Cross-Validation**.
+- Per-fold metrics, overall Out-Of-Fold (OOF) accuracy, random seeds, and hyperparameters are automatically logged to the root-level `results.txt`.
+- The final submission file (`submission.csv`), aggregated via majority voting across folds, is generated in the **project root directory**.
 
 ### 4.2 Deep Learning Pipeline (PyTorch MLP)
 Run the neural network pipeline from the project root:
 ```bash
 python DL/main_DL.py
 ```
-- Network hyperparameters (hidden dimensions, dropout, learning rate, optimizer) are managed in `DL/config.py`.
-- The best performing model checkpoint is saved to `DL/checkpoints/`.
-- Test set predictions are computed and saved to `submission.csv` in the **project root directory**.
+- Hyperparameters (hidden layer sizes, dropout, learning rate, optimizer) are managed in `DL/config.py`.
+- Training also utilizes stratified cross-validation (`StratifiedKFold`).
+- The best performing model checkpoints are saved directly to the root-level `checkpoints/` directory.
+- Test set predictions are averaged across folds and saved to `submission.csv` in the **project root directory**.
 
 ---
 
 ## 5. Models & Experimental Results
 
-> **Evaluation Methodology:** All current results are evaluated on a **single hold-out train/validation split**. Full cross-validation results will be reported once multi-fold aggregation is finalized across all modules.
+The project validation scheme was updated from an initial single train/validation split to a full 5-fold cross-validation setup with leak-free preprocessing. To maintain an accurate comparison, results are separated according to the validation protocol used.
 
-| Model | Category | Validation Accuracy (Single Split) | Highlights & Notes |
+### 5.1 Current Evaluation: 5-Fold Stratified Cross-Validation (OOF Accuracy)
+The current implementation evaluates all models using Out-Of-Fold (OOF) predictions across 5 stratified folds:
+
+| Model | Category | OOF Accuracy (5-Fold CV) | Mean Fold Accuracy | Notes |
+|---|---|:---:|:---:|---|
+| **CatBoostClassifier** | Gradient Boosting | ~0.83 – 0.84 | ~0.835 | Native handling of categorical features (`Sex`, `Embarked`) |
+| **LightGBM (LGBMClassifier)** | Gradient Boosting | ~0.82 – 0.83 | ~0.824 | Histogram-based boosting on numerical and OHE categorical features |
+| **RandomForestClassifier** | Tree Ensemble | ~0.81 – 0.83 | ~0.820 | Controlled tree depth (`max_depth=9`) |
+| **KNeighborsClassifier** | Instance-based | ~0.79 – 0.81 | ~0.802 | Tuned via `GridSearchCV` with preprocessing isolated inside the pipeline |
+| **LogisticRegression** | Linear Baseline | ~0.79 – 0.80 | ~0.796 | Standard linear classifier on scaled numerical features |
+| **PyTorch MLP (TitanicModel)** | Deep Learning | ~0.80 – 0.81 | ~0.805 | Linear -> BatchNorm -> ReLU -> Dropout architecture aggregated over 5 folds |
+
+### 5.2 Legacy Baseline: Single Hold-Out Split
+*Early experimental benchmarks evaluated on a single 80/20 train/validation split:*
+
+| Model | Category | Validation Accuracy (Single Split) | Notes |
 |---|---|:---:|---|
-| **LogisticRegression / LinearRegression** | Linear Baseline | ~0.78 | Baseline benchmark on scaled numerical & one-hot categorical features |
-| **KNeighborsClassifier** | Instance-based | ~0.79 | Tuned via `GridSearchCV` (`n_neighbors`, `weights`, `p`) |
-| **RandomForestClassifier / DecisionTree** | Tree Ensembles | ~0.80 – 0.83 | Non-linear feature interactions with controlled tree depth |
-| **LightGBM (LGBMClassifier)** | Gradient Boosting | ~0.81 – 0.83 | Fast histogram-based gradient boosting on preprocessed numeric features |
-| **CatBoostClassifier** | Gradient Boosting | ~0.82 – 0.84 | Gradient boosting with native handling of categorical features (`Sex`, `Embarked`) |
-| **PyTorch MLP (TitanicModel)** | Deep Learning | ~0.79 – 0.81 | Multi-layer Perceptron (Linear -> BatchNorm -> ReLU -> Dropout) trained with Adam/BCEWithLogitsLoss |
+| **Linear / Logistic Baseline** | Linear Baseline | ~0.78 | Initial baseline on preprocessed numerical and OHE features |
+| **KNeighborsClassifier** | Instance-based | ~0.79 | Preliminary hyperparameter search prior to pipeline isolation |
+| **DecisionTree / Random Forest** | Tree Models | ~0.80 – 0.82 | Initial tree depth tuning |
 
-All experimental runs, parameters, and evaluation metrics for classical models are tracked in `ML/results.txt`.
+Detailed logs for every run, individual fold metrics, and model parameters are recorded in `results.txt`.
